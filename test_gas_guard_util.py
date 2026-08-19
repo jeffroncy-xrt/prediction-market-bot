@@ -10,7 +10,7 @@ Real values from the incident: gas wallet 0.0341 POL, Polygon gas ~281 gwei,
 factory redeem gas_limit 300000 -> cost ~0.0843 POL (unaffordable).
 """
 import unittest
-from gas_guard_util import sufficient_gas
+from gas_guard_util import sufficient_gas, should_log_now
 
 GWEI = 10 ** 9
 
@@ -42,3 +42,36 @@ class TestSufficientGas(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestShouldLogNow(unittest.TestCase):
+    """The throttle that stopped 97 identical low-gas warnings in 27 minutes."""
+
+    def test_first_ever_call_logs(self):
+        # last_ts 0 means never logged; silence on the FIRST warning would
+        # hide the condition entirely.
+        self.assertTrue(should_log_now(0, 1000.0, 600.0))
+
+    def test_none_is_treated_as_never_logged(self):
+        self.assertTrue(should_log_now(None, 1000.0, 600.0))
+
+    def test_repeat_inside_the_window_is_suppressed(self):
+        # claim loop runs every ~15s; the 2nd pass must stay quiet
+        self.assertFalse(should_log_now(1000.0, 1015.0, 600.0))
+
+    def test_logs_again_once_the_window_has_passed(self):
+        self.assertTrue(should_log_now(1000.0, 1600.0, 600.0))
+
+    def test_boundary_is_inclusive(self):
+        self.assertTrue(should_log_now(1000.0, 1600.0, 600.0))
+        self.assertFalse(should_log_now(1000.0, 1599.9, 600.0))
+
+    def test_one_cycle_of_the_real_incident(self):
+        # 27 minutes of 15s cycles at a 10-minute throttle: 108 passes should
+        # yield 3 log lines, not 108.
+        last, logged = 0.0, 0
+        for i in range(108):
+            now = 1000.0 + i * 15.0
+            if should_log_now(last, now, 600.0):
+                last, logged = now, logged + 1
+        self.assertEqual(logged, 3)
