@@ -44,6 +44,23 @@ Bookkeeping quietly diverges from reality and nothing reports an error.
 authority is the venue's own record; local expectations are treated as a
 hypothesis to be checked.
 
+**Verify the row, not just the response.** A venue lookup API silently ignores
+query parameters it does not recognise and serves its default page — so every
+title lookup returned the same market until the code asserted the returned
+identifier matched the requested one. An API that never errors is not an API
+that understood you.
+
+**A matched order leaves the order table.** Querying a filled order returns
+nothing, and nothing looks exactly like "unfilled" — so fill state is
+reconciled against the venue's trade record, never inferred from an empty
+lookup. And a trade record shows one side's view: the leg you own may be
+nested inside it, inverted if you read it at face value.
+
+**Health lines carry pairs, not singles.** A resting-bids count next to a
+bid-fill count reads as one fact: bids resting with zero fills is the fault,
+while either number alone looks healthy. Every monitor added since ships its
+partner metric in the same line.
+
 ## What is not included
 
 Strategy, signals, entry and exit conditions, thresholds, position sizing, the

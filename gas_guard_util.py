@@ -16,3 +16,13 @@ def sufficient_gas(gas_balance_pol, gas_price_wei, gas_limit):
     """True if the EOA POL balance can cover gas_price_wei * gas_limit."""
     cost_pol = (gas_price_wei * gas_limit) / 1e18
     return gas_balance_pol >= cost_pol
+
+
+def should_log_now(last_ts, now, interval_s):
+    """True if `interval_s` has elapsed since `last_ts` — a log throttle.
+
+    A gas-starved claimer re-checks every cycle by design (so it recovers the
+    moment funds arrive), but it must not narrate that on every pass. `last_ts`
+    of 0/None means "never logged", which must log.
+    """
+    return (now - (last_ts or 0)) >= interval_s
